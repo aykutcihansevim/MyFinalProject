@@ -8,6 +8,7 @@ using DataAccess.Concrete.EntityFramework;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +19,9 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Core.DependencyResolvers;
 using System.Threading.Tasks;
+using Core.Extensions;
 
 namespace WebAPI
 {
@@ -39,7 +42,9 @@ namespace WebAPI
             services.AddControllers();
             //services.AddSingleton<IProductService, ProductManager>();
             //services.AddSingleton<IProductDal, EfProductDal>();
+            //services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
+            services.AddCors();
 
             var tokenOptions = Configuration.GetSection("TokenOptions").Get<TokenOptions>();
 
@@ -54,11 +59,13 @@ namespace WebAPI
                         ValidIssuer = tokenOptions.Issuer,
                         ValidAudience = tokenOptions.Audience,
                         ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = SecurityKeyHelper.CreateSecurityKey(tokenOptions.SecurityKey),
+                        IssuerSigningKey = SecurityKeyHelper.CreateSecurityKey(tokenOptions.SecurityKey)
                     };
                 });
 
-            ServiceTool.Create(services);
+            services.AddDependencyResolvers(new ICoreModule[] {
+               new CoreModule()
+            });
 
         }
 
@@ -74,6 +81,7 @@ namespace WebAPI
 
             app.UseRouting();
 
+            //Middleware
             app.UseAuthentication();
 
             app.UseAuthorization();

@@ -2,6 +2,8 @@
 using Business.BusinessAspects.Autofac;
 using Business.Constants;
 using Business.ValidationRules.FluentValidation;
+using Core.Aspects.Autofac.Caching;
+using Core.Aspects.Autofac.Transaction;
 using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
 using Core.Utilities.Business;
@@ -36,8 +38,9 @@ namespace Business.Concrete
         //Claim = İddia etmek demek. 
         //JWT = Jason Web Token , Yetkilendirme.
 
-        [SecuredOperation("product.add")]
+        [SecuredOperation("product.add,admin")]
         [ValidationAspect(typeof(ProductValidator))]
+        [CacheRemoveAspect("IProductService.Get")]
         public IResult Add(Product product)
         {
             //Validation Rule = Yapısal kurallara uygun mu, örneğin ürün adı 2 harften uzun olmak zorundadır.
@@ -59,6 +62,8 @@ namespace Business.Concrete
             return new SuccessResult(Messages.ProductAdded);
         }
 
+        //Özellikle çok yoğun kullanılan sistemlerde cache management önemlidir. Örneğin yoğun kullanılan e-ticaret sitelerinde. Veriler genelde cacheten gelir.
+        [CacheAspect] // key, value
         public IDataResult<List<Product>> GetAll()
         {
             //if (DateTime.Now.Hour == 15)
@@ -73,6 +78,9 @@ namespace Business.Concrete
             return new SuccessDataResult<List<Product>>(_productDal.GetAll(p => p.CategoryId == id));
         }
 
+        [CacheAspect]
+        //Bu metodun çalışması 5 saniyeyi geçerse beni uyar.
+        //[PerformanceAspect(5)]
         public IDataResult<Product> GetById(int productId)
         {
             return new SuccessDataResult<Product>(_productDal.Get(p => p.ProductId == productId));
@@ -89,6 +97,8 @@ namespace Business.Concrete
         }
 
         [ValidationAspect(typeof(ProductValidator))]
+        //Ürün güncellendiği zaman IProductService'te bulunan tüm cachelerin temizlenmesi için.
+        [CacheRemoveAspect("IProductService.Get")]
         public IResult Update(Product product)
         {
             _productDal.Update(product);
@@ -133,8 +143,13 @@ namespace Business.Concrete
             return new SuccessResult();
         }
 
-
-
+        [TransactionScopeAspect]
+        public IResult TransactionalOperation(Product product)
+        {
+            _productDal.Update(product);
+            _productDal.Add(product);
+            return new SuccessResult(Messages.ProductUpdated);
+        }
 
     }
 }
