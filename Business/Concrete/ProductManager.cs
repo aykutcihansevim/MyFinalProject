@@ -1,4 +1,5 @@
 ﻿using Business.Abstract;
+using Business.BusinessAspects.Autofac;
 using Business.Constants;
 using Business.ValidationRules.FluentValidation;
 using Core.Aspects.Autofac.Validation;
@@ -27,6 +28,15 @@ namespace Business.Concrete
             _categoryService = categoryService;
         }
 
+        //Encryption, Hashing = Datayı karşı taraf okuyamasın diye yapılan çalışmalar. Paroları veritabanlarında açık tutmak yerine hashleriz.
+        //Şifreleme(Hashleme) algoritmaları= MD5, SHA1 vs.
+        //Şifrelenmiş datalar rainbow table lara eklenen hashlerin içerisinde aratılarak çözülebilir. Bu sebeple güvenli bir şifre talep edilir ki rainbow table'da bulunmasın.
+        //Salting = Kullanıcının girdiği parolanın bir tık daha güçlendirilmesidir.
+        //Encryption == Geri dönüşü olan veri. Neyle nasıl şifrelendiğini bildiğiniz sürece decryption işlemi gerçekleştirerek veriyi geri dönüştürebilirsiniz.
+        //Claim = İddia etmek demek. 
+        //JWT = Jason Web Token , Yetkilendirme.
+
+        [SecuredOperation("product.add")]
         [ValidationAspect(typeof(ProductValidator))]
         public IResult Add(Product product)
         {
